@@ -7,6 +7,8 @@ module Turtle.Shallow
 
          -- * Primitive operations
          , newTurtle
+         , identity
+
          , forward
          , backward
          , right
@@ -22,6 +24,7 @@ module Turtle.Shallow
          , forever
 
          , (<|>)
+         , save
          ) where
 
 import Text.Printf
@@ -29,8 +32,12 @@ import qualified Graphics.Rendering.OpenGL as OpenGL
 import Control.Monad (forM, mapM)
 
 -- | Turtle data type
+
+-- | 2D coordinate.
 type Position = (Double, Double)
+-- | Angle, in degree.
 type Orientation = Double
+-- | RGB color.
 type Color = (Double, Double, Double)
 data Turtle = Turtle { pos :: Position
                      , dir :: Orientation
@@ -55,6 +62,7 @@ instance Show Turtle where
 type Program = [Turtle] -> IO [Turtle]
 
 -- Primitive operations
+-- | Create a turtle.
 newTurtle :: Turtle
 newTurtle = Turtle { pos = (0.0, 0.0)
                    , dir = radians 90.0
@@ -62,6 +70,11 @@ newTurtle = Turtle { pos = (0.0, 0.0)
                    , col = (1.0, 1.0, 1.0)
                    }
 
+-- | No-op program.
+identity :: Program
+identity ts = return ts
+
+-- | Advance turtle.
 forward :: Double -> Program
 forward dist ts = mapM (forward_ dist) ts where
   forward_ dist orig@(Turtle (x1, y1) theta pen col@(r, g, b)) = do
@@ -77,9 +90,11 @@ forward dist ts = mapM (forward_ dist) ts where
   toVertex t = let (x, y) = pos t
                in OpenGL.vertex $ OpenGL.Vertex3 x y 0
 
+-- | Advance in opposite direction.
 backward :: Double -> Program
 backward = forward . ((-1.0) *)
 
+-- | Rotate right.
 right :: Double -> Program
 right angle ts = mapM (right_ angle) ts where
   right_ angle orig@(Turtle pos theta pen col) = do
@@ -87,52 +102,65 @@ right angle ts = mapM (right_ angle) ts where
     putStrLn $ printf "right %d: %s -> %s" (toInteger $ truncate angle) (show orig) (show next)
     return next
 
+-- | Rotate left.
 left :: Double -> Program
 left = right . ((-1.0) *)
 
+-- | Show no trace when advance.
 penup :: Program
 penup ts = do
   putStrLn "penup"
   mapM (\t -> return $ setPen t False) ts
 
+-- | Show turtle trace when advance.
 pendown :: Program
 pendown ts = do
   putStrLn "pendown"
   mapM (\t -> return $ setPen t True) ts
 
+-- | Set trace color.
 color :: Double -> Double -> Double -> Program
 color r g b ts = do
   putStrLn "color"
   mapM (\t -> return $ setCol t (r, g, b)) ts
 
+-- | Set trace color based on turtle state.
 colorBy :: ([Turtle] -> Color) -> Program
 colorBy fn ts = let (r, g, b) = fn ts
                 in color r g b ts
 
+-- | Parallel program combination.
 (<|>) :: Program -> Program -> Program
 (prog1 <|> prog2) ts = do
   ts1 <- prog1 ts
   ts2 <- prog2 ts
   return $ ts1 ++ ts2
 
+-- | Save current state/program. It is execute after later programs are done.
+save :: Program -> Program
+save prog = identity <|> prog
+
+-- | Repeat program.
 times :: Int -> Program -> Program
 times n prog ts
   | n == 0 = return ts
   | n > 0  = prog ts >>= times (n-1) prog
 
+-- | Infinite repeat.
 forever :: Program -> Program
 forever prog ts =
   prog ts >>= forever prog
 
 -- | auxiliary functions
--- * degree to radian conversion
+
+-- | Degree to radian conversion.
 radians :: Double -> Double
 radians d = d * pi / 180.0
 
--- * radian to degree conversion
+-- | Radian to degree conversion.
 degrees :: Double -> Double
 degrees r = r * 180.0 / pi
 
--- * double remainder
+-- | Double remainder.
 frem :: Double -> Double -> Double
 frem x y = x - (y * (fromIntegral $ floor (x/y)))

@@ -4,15 +4,32 @@
 module Turtle (
   -- * The turtle type(s)
   -- Non-exhausive list of possible types: Turtle, Program, Action, Operation
-  module TurtleImpl
+  Program
+  , Turtle(..)
+
   -- * Primitive operations
   -- , forward
   -- , (<|>)
   -- , ...
+  , newTurtle
+  , identity
 
+  , forward
+  , right
+
+  , penup
+  , pendown
+  , color
+
+  , (<|>)
   -- * Derived operations
   -- ...
-
+  , backward
+  , left
+  , colorBy
+  , times
+  , forever
+  , save
   -- * Run functions
   -- runTextual :: Program -> IO ()
   -- ...
