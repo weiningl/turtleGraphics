@@ -1,8 +1,10 @@
 -- | A graphical run function for the turtle DSL
 module TurtleGraphics (runGraphical) where
 
-import Graphics.Rendering.OpenGL hiding (Program)
-import Graphics.UI.GLUT hiding (Program)
+import Control.Monad (forM_)
+import qualified Graphics.Rendering.OpenGL as OpenGL
+import Graphics.Rendering.OpenGL hiding (Program, color)
+import Graphics.UI.GLUT hiding (Program, color)
 import System.Exit
 import Turtle
 
@@ -14,15 +16,25 @@ runGraphical :: Program -> IO ()
 runGraphical program = do
   (_, _) <- getArgsAndInitialize
   createWindow "Hello World"
-  displayCallback $= (display program [newTurtle])
+  displayCallback $= (display program newTurtle)
   mainLoop
 
-display :: Program -> [Turtle] -> IO ()
-display prog initPos = do
+display :: Program -> Turtle -> IO ()
+display prog init = do
   clear [ColorBuffer]
-  pos <- return initPos
-  prog pos
+  forM_ (run prog init) draw
   flush
+  where draw (t1, t2) =
+          if (pen t1) then
+            renderPrimitive Lines $ do
+              OpenGL.color $ Color3 r g b
+              OpenGL.vertex $ Vertex3 x1 y1 0
+              OpenGL.vertex $ Vertex3 x2 y2 0
+          else return ()
+          where (x1, y1) = pos t1
+                (x2, y2) = pos t2
+                (r, g, b) = col t1
+
 
 -- display = do
 --   clear [ColorBuffer]

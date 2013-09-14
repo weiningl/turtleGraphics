@@ -5,7 +5,7 @@ module Turtle (
   -- * The turtle type(s)
   -- Non-exhausive list of possible types: Turtle, Program, Action, Operation
   Program
-  , Turtle(..)
+  , Turtle (..)
 
   -- * Primitive operations
   -- , forward
@@ -21,6 +21,7 @@ module Turtle (
   , pendown
   , color
 
+  , (>>>)
   , (<|>)
   -- * Derived operations
   -- ...
@@ -33,6 +34,8 @@ module Turtle (
   -- * Run functions
   -- runTextual :: Program -> IO ()
   -- ...
+  , run
+  , runTextual
 
   ) where
 
