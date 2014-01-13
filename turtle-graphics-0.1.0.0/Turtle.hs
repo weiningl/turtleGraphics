@@ -12,10 +12,12 @@ module Turtle (
   -- , (<|>)
   -- , ...
   , newTurtle
-  , identity
 
+  , identity
   , forward
+  , backward
   , right
+  , left
 
   , penup
   , pendown
@@ -23,20 +25,16 @@ module Turtle (
 
   , (>>>)
   , (<|>)
-  -- * Derived operations
-  -- ...
-  , backward
-  , left
-  , colorBy
+
   , times
   , forever
-  , save
+
   -- * Run functions
   -- runTextual :: Program -> IO ()
   -- ...
-  , run
+  , runProg
   , runTextual
 
   ) where
 
-import Turtle.Shallow as TurtleImpl
+import Turtle.Program as TurtleImpl

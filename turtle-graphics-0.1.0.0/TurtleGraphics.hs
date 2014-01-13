@@ -16,25 +16,26 @@ runGraphical :: Program -> IO ()
 runGraphical program = do
   (_, _) <- getArgsAndInitialize
   createWindow "Hello World"
-  displayCallback $= (display program newTurtle)
+  displayCallback $= (display program)
   mainLoop
 
-display :: Program -> Turtle -> IO ()
-display prog init = do
+display :: Program -> IO ()
+display prog = do
   clear [ColorBuffer]
-  forM_ (run prog init) draw
+  forM_ (runProg prog) draw
   flush
   where draw (t1, t2) =
           if (pen t1) then
             renderPrimitive Lines $ do
-              OpenGL.color $ Color3 r g b
-              OpenGL.vertex $ Vertex3 x1 y1 0
-              OpenGL.vertex $ Vertex3 x2 y2 0
+              OpenGL.color $ Color3 (convertDouble r) (convertDouble g) (convertDouble b)
+              OpenGL.vertex $ Vertex3 (convertDouble x1) (convertDouble y1) 0
+              OpenGL.vertex $ Vertex3 (convertDouble x2) (convertDouble y2) 0
           else return ()
           where (x1, y1) = pos t1
                 (x2, y2) = pos t2
                 (r, g, b) = col t1
-
+                convertDouble :: Double -> GLdouble
+                convertDouble = realToFrac
 
 -- display = do
 --   clear [ColorBuffer]

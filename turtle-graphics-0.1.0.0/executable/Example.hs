@@ -26,22 +26,17 @@ circular n radius sneak prog =
           >>> prog
 
 circle radius = circular 360 radius False identity
-flower n size radius = circular n size True $ (colorByPosition 0.4 2.0
-                                               >>> circle radius)
+flower n size radius = circular n size True (circle radius)
 
 spiral size angle =
   if (size > maxSize) then identity
-  else colorByPosition (size / maxSize) 1.2
-       >>> (if (size > 0.2 * maxSize && size < 0.4 * maxSize) then penup
-            else pendown)
+  else (if (size > 0.2 * maxSize && size < 0.4 * maxSize) then penup
+        else pendown)
        >>> forward size
        >>> right angle
        >>> spiral (size + stepSize) angle
   where maxSize = 0.4
         stepSize = 0.01
-
-colorByPosition r amp = colorBy (\t -> let (x, y) = pos t
-                                       in (r, amp * abs x, amp * abs y))
 
 goLeft dist =
   penup
