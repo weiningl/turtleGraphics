@@ -28,6 +28,7 @@ module Turtle.Program (
 
   ) where
 
+import Control.Monad.Writer hiding (forever)
 import Control.Monad.State hiding (forever)
 import Data.Monoid
 
@@ -35,21 +36,18 @@ import qualified Turtle.Representation as T
 import Turtle.Representation (Turtle)
 
 -- | Turtle program
-type Prog s = State [s]
+type Prog s a = WriterT a (State [s]) a
 
 -- | Serial program combination.
 (>>>) :: (Monoid a) => Prog s a -> Prog s a -> Prog s a
-prog1 >>> prog2 = state $ \s ->
-  let (a1, s1) = runState prog1 s
-      (a2, s2) = runState prog2 s1
-  in (a1 `mappend` a2, s2)
+prog1 >>> prog2 = do prog1; prog2
 
 -- | Parallel program combination.
 (<|>) :: (Monoid a) => Prog s a -> Prog s a -> Prog s a
-prog1 <|> prog2 = state $ \s ->
-  let (a1, s1) = runState prog1 s
-      (a2, s2) = runState prog2 s
-  in (a1 `mappend` a2, s1 ++ s2)
+prog1 <|> prog2 = WriterT $ state $ \s ->
+  let ((a1, w1), s1) = (runState . runWriterT) prog1 s
+      ((a2, w2), s2) = (runState . runWriterT) prog2 s
+  in ((a2, w1 `mappend` w2), s1 ++ s2)
 
 -- | Repeat program.
 times :: (Monoid a) => Int -> Prog s a -> Prog s a
@@ -63,9 +61,10 @@ forever prog = prog >>> forever prog
 
 -- | Map single state program to multiple state program
 liftProgram :: (s -> s) -> Prog s [(s, s)]
-liftProgram f = state $ \xs ->
+liftProgram f = WriterT $ state $ \xs ->
   let xs' = fmap f xs
-  in (zip xs xs', xs')
+      ws' = zip xs xs'
+  in ((ws', ws'), xs')
 
 type Program = Prog Turtle [(Turtle, Turtle)]
 
@@ -89,7 +88,7 @@ color r g b = liftProgram (T.color r g b)
 
 -- | Run program.
 runProg :: Program -> [(Turtle, Turtle)]
-runProg prog = evalState prog [T.newTurtle]
+runProg prog = (evalState . execWriterT) prog [T.newTurtle]
 
 -- | Textual output of a program
 runTextual :: Program -> IO ()

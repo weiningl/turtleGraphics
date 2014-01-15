@@ -19,10 +19,11 @@ library
   exposed-modules:     
       TurtleGraphics
     , Turtle
-    , Turtle.Shallow
-    , Tree
-  -- other-modules:       
+  other-modules:       
+      Turtle.Program
+    , Turtle.Representation
   build-depends:       base >= 4 && < 5,
+                       mtl,
                        GLUT,
                        OpenGL,
 					   -- Add anything your package depends on here
