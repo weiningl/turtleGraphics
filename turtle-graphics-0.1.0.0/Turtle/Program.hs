@@ -29,44 +29,43 @@ module Turtle.Program (
   ) where
 
 import Control.Monad.Writer hiding (forever)
-import Control.Monad.State hiding (forever)
 import Data.Monoid
 
 import qualified Turtle.Representation as T
 import Turtle.Representation (Turtle)
 
 -- | Turtle program
-type Prog s a = WriterT a (State [s]) a
+type Prog w a = [a] -> Writer w [a]
 
 -- | Serial program combination.
-(>>>) :: (Monoid a) => Prog s a -> Prog s a -> Prog s a
-prog1 >>> prog2 = do prog1; prog2
+(>>>) :: (Monoid w) => Prog w a -> Prog w a -> Prog w a
+(prog1 >>> prog2) x = prog1 x >>= prog2
 
 -- | Parallel program combination.
-(<|>) :: (Monoid a) => Prog s a -> Prog s a -> Prog s a
-prog1 <|> prog2 = WriterT $ state $ \s ->
-  let ((a1, w1), s1) = (runState . runWriterT) prog1 s
-      ((a2, w2), s2) = (runState . runWriterT) prog2 s
-  in ((a2, w1 `mappend` w2), s1 ++ s2)
+(<|>) :: (Monoid w) => Prog w a -> Prog w a -> Prog w a
+(prog1 <|> prog2) x = writer $ let
+  (a1, w1) = runWriter (prog1 x)
+  (a2, w2) = runWriter (prog2 x)
+  in (a1 ++ a2, w1 `mappend` w2)
 
 -- | Repeat program.
-times :: (Monoid a) => Int -> Prog s a -> Prog s a
+times :: (Monoid w) => Int -> Prog w a -> Prog w a
 times n prog
   | n == 1 = prog
   | n > 1 = prog >>> times (n - 1) prog
 
 -- | Repeat program forever.
-forever :: (Monoid a) => Prog s a -> Prog s a
+forever :: (Monoid w) => Prog w a -> Prog w a
 forever prog = prog >>> forever prog
 
 -- | Map single state program to multiple state program
-liftProgram :: (s -> s) -> Prog s [(s, s)]
-liftProgram f = WriterT $ state $ \xs ->
-  let xs' = fmap f xs
-      ws' = zip xs xs'
-  in ((ws', ws'), xs')
+liftProgram :: (a -> a) -> Prog [(a, a)] a
+liftProgram f xs = do tell ws
+                      return xs'
+  where xs' = fmap f xs
+        ws = zip xs xs'
 
-type Program = Prog Turtle [(Turtle, Turtle)]
+type Program = Prog [(Turtle, Turtle)] Turtle
 
 identity :: Program
 identity = liftProgram id
@@ -88,7 +87,7 @@ color r g b = liftProgram (T.color r g b)
 
 -- | Run program.
 runProg :: Program -> [(Turtle, Turtle)]
-runProg prog = (evalState . execWriterT) prog [T.newTurtle]
+runProg prog = execWriter $ prog [T.newTurtle]
 
 -- | Textual output of a program
 runTextual :: Program -> IO ()
